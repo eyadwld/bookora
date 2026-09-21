@@ -86,7 +86,7 @@ export const login = async (req, res) => {
   if (!user.emailVerified) {
     await resendOtpService({
       userId: user._id,
-    }).catch(() => {});
+    }).catch(() => { });
 
     return res.status(403).json({
       success: false,
@@ -220,10 +220,12 @@ export const resendOtp = async (req, res) => {
 ========================================================= */
 
 export const forgotPassword = async (req, res) => {
-  await forgotPasswordService(req.body.email);
+  const result = await forgotPasswordService(req.body.email);
 
   res.status(200).json({
     message: "Check your email to reset your password.",
+
+    userId: result.userId || null,
   });
 };
 
@@ -234,6 +236,8 @@ export const forgotPassword = async (req, res) => {
 export const resetPassword = async (req, res) => {
   await resetPasswordService({
     userId: req.body.userId,
+
+    email: req.body.email,
 
     otp: req.body.otp,
 

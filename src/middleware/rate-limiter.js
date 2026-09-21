@@ -6,7 +6,7 @@ export const ratelimiter = () => async (req, _res, next) => {
     if (req.originalUrl?.includes("/payments/webhook")) return next();
     if (!ratelimit) return next();
 
-    const identifier = req.userId.toString() || req.ip;
+    const identifier = req.userId || req.ip;
 
     const { success } = await ratelimit.limit(identifier);
 

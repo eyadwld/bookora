@@ -284,13 +284,14 @@ export const forgotPasswordService = async (email) => {
 
   // Do not reveal whether account exists.
   if (!user || (user.authProvider && user.authProvider !== "local")) {
-    return { ok: true };
+    return { ok: true, userId: null };
   }
 
   await issuePasswordResetOtp(user);
 
   return {
     ok: true,
+    userId: user._id.toString(),
   };
 };
 
@@ -298,8 +299,13 @@ export const forgotPasswordService = async (email) => {
    RESET PASSWORD
 ========================================================= */
 
-export const resetPasswordService = async ({ userId, otp, newPassword }) => {
-  if (!userId) {
+export const resetPasswordService = async ({
+  userId,
+  email,
+  otp,
+  newPassword,
+}) => {
+  if (!userId && !email) {
     throw ApiError(400, "User ID is required");
   }
 
@@ -311,9 +317,23 @@ export const resetPasswordService = async ({ userId, otp, newPassword }) => {
     throw ApiError(400, "Password must be at least 8 chars");
   }
 
-  const user = await User.findById(userId).select(
-    "+passwordResetOtpSecret +passwordResetOtpExpiresAt +passwordResetOtpAttempts +password",
-  );
+  let user = null;
+
+  if (userId) {
+    user = await User.findById(userId).select(
+      "+passwordResetOtpSecret +passwordResetOtpExpiresAt +passwordResetOtpAttempts +password",
+    );
+  } else {
+    const normalizedEmail = email?.toLowerCase().trim();
+
+    if (!normalizedEmail) {
+      throw ApiError(400, "User ID is required");
+    }
+
+    user = await User.findOne({ email: normalizedEmail }).select(
+      "+passwordResetOtpSecret +passwordResetOtpExpiresAt +passwordResetOtpAttempts +password",
+    );
+  }
 
   if (!user) {
     throw ApiError(404, "Account not found");
