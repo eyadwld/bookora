@@ -14,16 +14,20 @@ import {
 |--------------------------------------------------------------------------
 */
 
-export const createCheckoutSession = async (req, res) => {
-  const result = await createCheckoutSessionService({
-    userId: req.userId,
-    orderId: req.body.orderId,
-  });
+export const createCheckoutSession = async (req, res, next) => {
+  try {
+    const result = await createCheckoutSessionService({
+      userId: req.userId,
+      orderId: req.body.orderId,
+    });
 
-  res.status(201).json({
-    success: true,
-    data: result,
-  });
+    res.status(201).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /*
@@ -32,16 +36,20 @@ export const createCheckoutSession = async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-export const getPaymentStatus = async (req, res) => {
-  const result = await getPaymentStatusService({
-    userId: req.userId,
-    sessionId: req.params.sessionId,
-  });
+export const getPaymentStatus = async (req, res, next) => {
+  try {
+    const result = await getPaymentStatusService({
+      userId: req.userId,
+      sessionId: req.params.sessionId,
+    });
 
-  res.status(200).json({
-    success: true,
-    data: result,
-  });
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /*
@@ -50,16 +58,20 @@ export const getPaymentStatus = async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-export const getPaymentByOrder = async (req, res) => {
-  const result = await getPaymentByOrderService({
-    userId: req.userId,
-    orderId: req.params.orderId,
-  });
+export const getPaymentByOrder = async (req, res, next) => {
+  try {
+    const result = await getPaymentByOrderService({
+      userId: req.userId,
+      orderId: req.params.orderId,
+    });
 
-  res.status(200).json({
-    success: true,
-    data: result,
-  });
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /*
@@ -68,17 +80,21 @@ export const getPaymentByOrder = async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-export const getAdminPayments = async (req, res) => {
-  const result = await getAdminPaymentsService({
-    cursor: req.query.cursor,
-    limit: req.query.limit,
-    status: req.query.status,
-  });
+export const getAdminPayments = async (req, res, next) => {
+  try {
+    const result = await getAdminPaymentsService({
+      cursor: req.query.cursor,
+      limit: req.query.limit,
+      status: req.query.status,
+    });
 
-  res.status(200).json({
-    success: true,
-    data: result,
-  });
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /*
@@ -87,56 +103,53 @@ export const getAdminPayments = async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-export const stripeWebhook = async (req, res) => {
-  console.log("🔥 STRIPE WEBHOOK RECEIVED");
-
-  const stripe = getStripe();
-
-  const signature = req.headers["stripe-signature"];
-
-  if (!signature) {
-    return res.status(400).json({
-      success: false,
-      message: "Missing Stripe signature",
-    });
-  }
-
-  let event;
-
+export const stripeWebhook = async (req, res, next) => {
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET,
-    );
+    console.log("🔥 STRIPE WEBHOOK RECEIVED");
 
-    console.log("🔥 STRIPE EVENT:", {
-      id: event.id,
-      type: event.type,
-    });
-  } catch (error) {
-    console.error(
-      "Stripe webhook signature verification failed:",
-      error.message,
-    );
+    const stripe = getStripe();
 
-    return res.status(400).json({
-      success: false,
-      message: "Invalid Stripe webhook signature",
-    });
-  }
+    const signature = req.headers["stripe-signature"];
 
-  /*
-   * Process event.
-   */
-  try {
+    if (!signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing Stripe signature",
+      });
+    }
+
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET,
+      );
+
+      console.log("🔥 STRIPE EVENT:", {
+        id: event.id,
+        type: event.type,
+      });
+    } catch (error) {
+      console.error(
+        "Stripe webhook signature verification failed:",
+        error.message,
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Stripe webhook signature",
+      });
+    }
+
+    /*
+     * Process event.
+     */
     const result = await handleStripeWebhookService(event);
 
     return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({
-      received: false,
-      message: "Webhook processing failed",
-    });
+    next(error);
   }
 };
